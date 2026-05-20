@@ -1,47 +1,56 @@
-import { CartProvider } from 'components/cart/cart-context';
-import { Navbar } from 'components/layout/navbar';
-import { WelcomeToast } from 'components/welcome-toast';
-import { GeistSans } from 'geist/font/sans';
-import { getCart } from 'lib/shopify';
-import { ReactNode } from 'react';
-import { Toaster } from 'sonner';
-import './globals.css';
-import { baseUrl } from 'lib/utils';
+import type { Metadata } from 'next'
+import { Oswald, Inter, Pinyon_Script } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/next'
+import './globals.css'
 
-const { SITE_NAME } = process.env;
+const oswald = Oswald({ 
+  subsets: ["latin"],
+  variable: '--font-oswald'
+});
+const inter = Inter({ 
+  subsets: ["latin"],
+  variable: '--font-inter'
+});
+const pinyonScript = Pinyon_Script({
+  weight: "400",
+  subsets: ["latin"],
+  variable: '--font-script'
+});
 
-export const metadata = {
-  metadataBase: new URL(baseUrl),
-  title: {
-    default: SITE_NAME!,
-    template: `%s | ${SITE_NAME}`
+export const metadata: Metadata = {
+  title: 'Homepage | Music Artist',
+  description: 'THE VYZN - New Music on All Streaming Platforms',
+  generator: 'v0.app',
+  icons: {
+    icon: [
+      {
+        url: '/icon-light-32x32.png',
+        media: '(prefers-color-scheme: light)',
+      },
+      {
+        url: '/icon-dark-32x32.png',
+        media: '(prefers-color-scheme: dark)',
+      },
+      {
+        url: '/icon.svg',
+        type: 'image/svg+xml',
+      },
+    ],
+    apple: '/apple-icon.png',
   },
-  robots: {
-    follow: true,
-    index: true
-  }
-};
+}
 
-export default async function RootLayout({
-  children
-}: {
-  children: ReactNode;
-}) {
-  // Don't await the fetch, pass the Promise to the context provider
-  const cart = getCart();
-
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode
+}>) {
   return (
-    <html lang="en" className={GeistSans.variable}>
-      <body className="bg-neutral-50 text-black selection:bg-teal-300 dark:bg-neutral-900 dark:text-white dark:selection:bg-pink-500 dark:selection:text-white">
-        <CartProvider cartPromise={cart}>
-          <Navbar />
-          <main>
-            {children}
-            <Toaster closeButton />
-            <WelcomeToast />
-          </main>
-        </CartProvider>
+    <html lang="en">
+      <body className={`${oswald.variable} ${inter.variable} ${pinyonScript.variable} font-sans antialiased`}>
+        {children}
+        <Analytics />
       </body>
     </html>
-  );
+  )
 }
