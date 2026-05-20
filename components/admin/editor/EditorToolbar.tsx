@@ -29,57 +29,23 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { LogOut, Plus, Save, Upload, Grid3x3, Zap } from 'lucide-react';
+import { LogOut, Plus, Save, Zap } from 'lucide-react';
 import { toast } from 'sonner';
+import PageManager from './PageManager';
+import AdminHelp from './AdminHelp';
 
 export default function EditorToolbar() {
   const router = useRouter();
   const {
     pages,
     currentPage,
-    setPages,
-    setCurrentPage,
     setSaveStatus,
     setPublishStatus,
     saveStatus,
     publishStatus,
   } = useEditorStore();
 
-  const [isCreatingPage, setIsCreatingPage] = useState(false);
-  const [newPageName, setNewPageName] = useState('');
-  const [newPageSlug, setNewPageSlug] = useState('');
   const [isConfirmingLogout, setIsConfirmingLogout] = useState(false);
-
-  const handleCreatePage = async () => {
-    if (!newPageName || !newPageSlug) {
-      toast.error('Please fill in all fields');
-      return;
-    }
-
-    try {
-      const response = await fetch('/admin/api/pages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newPageName, slug: newPageSlug }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        toast.error(data.error || 'Failed to create page');
-        return;
-      }
-
-      const newPage: PageData = await response.json();
-      setPages([...pages, newPage]);
-      setCurrentPage(newPage);
-      setIsCreatingPage(false);
-      setNewPageName('');
-      setNewPageSlug('');
-      toast.success('Page created successfully');
-    } catch (error) {
-      toast.error('Failed to create page');
-    }
-  };
 
   const handleSaveDraft = async () => {
     if (!currentPage) return;
@@ -161,71 +127,16 @@ export default function EditorToolbar() {
   return (
     <div className="border-b border-slate-200 bg-white">
       <div className="flex items-center justify-between h-16 px-6 gap-4">
-        {/* Left Section - Page Selector */}
+        {/* Left Section - Page Manager */}
         <div className="flex items-center gap-4">
-          <h2 className="font-semibold text-sm">Pages:</h2>
-          <Select
-            value={currentPage?.id || ''}
-            onValueChange={(value) => {
-              const page = pages.find((p) => p.id === value);
-              if (page) setCurrentPage(page);
-            }}
-          >
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Select a page" />
-            </SelectTrigger>
-            <SelectContent>
-              {pages.map((page) => (
-                <SelectItem key={page.id} value={page.id}>
-                  {page.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Dialog open={isCreatingPage} onOpenChange={setIsCreatingPage}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
-                <Plus className="w-4 h-4" />
-                New Page
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create New Page</DialogTitle>
-                <DialogDescription>
-                  Add a new page to your website.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="page-name">Page Name</Label>
-                  <Input
-                    id="page-name"
-                    placeholder="e.g., About Us"
-                    value={newPageName}
-                    onChange={(e) => setNewPageName(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="page-slug">URL Slug</Label>
-                  <Input
-                    id="page-slug"
-                    placeholder="e.g., /about"
-                    value={newPageSlug}
-                    onChange={(e) => setNewPageSlug(e.target.value)}
-                  />
-                </div>
-                <Button onClick={handleCreatePage} className="w-full">
-                  Create Page
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <span className="text-sm font-semibold text-slate-600">Pages:</span>
+          <PageManager />
         </div>
 
         {/* Right Section - Actions */}
         <div className="flex items-center gap-4">
+          <AdminHelp />
+          
           <div className={`text-xs font-medium ${getStatusColor()}`}>
             {saveStatus === 'saving' && 'Saving...'}
             {saveStatus === 'saved' && 'Draft Saved'}
