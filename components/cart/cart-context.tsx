@@ -27,7 +27,7 @@ type CartAction =
     };
 
 type CartContextType = {
-  cartPromise: Promise<Cart | undefined>;
+  cartPromise?: Promise<Cart | undefined>;
 };
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -195,10 +195,12 @@ export function CartProvider({
   cartPromise
 }: {
   children: React.ReactNode;
-  cartPromise: Promise<Cart | undefined>;
+  cartPromise?: Promise<Cart | undefined>;
 }) {
+  const resolvedPromise = cartPromise || Promise.resolve(createEmptyCart());
+  
   return (
-    <CartContext.Provider value={{ cartPromise }}>
+    <CartContext.Provider value={{ cartPromise: resolvedPromise }}>
       {children}
     </CartContext.Provider>
   );
