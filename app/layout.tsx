@@ -27,8 +27,12 @@ export default async function RootLayout({
 }: {
   children: ReactNode;
 }) {
-  // Don't await the fetch, pass the Promise to the context provider
-  const cart = getCart();
+  // Only fetch cart if Shopify credentials are configured
+  let cart: Promise<any> = Promise.resolve(undefined);
+  
+  if (process.env.SHOPIFY_STORE_DOMAIN && process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN) {
+    cart = getCart();
+  }
 
   return (
     <html lang="en" className={GeistSans.variable}>
