@@ -1,196 +1,235 @@
 import { create } from 'zustand';
+import type { EditorElement, PageLayout, EditorState as EditorStateType } from './types';
+import { v4 as uuidv4 } from 'uuid';
 
-export interface CanvasElement {
-  id: string;
-  type: 'text' | 'image' | 'button' | 'link' | 'shape' | 'frame' | 'navbar' | 'spacer';
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  rotation: number;
-  opacity: number;
-  zIndex: number;
-  locked: boolean;
-  hidden: boolean;
-
-  // Content
-  content?: string;
-  href?: string;
-  src?: string;
-
-  // Styling
-  fill?: string;
-  stroke?: string;
-  strokeWidth?: number;
-  borderRadius?: number;
-
-  // Text-specific
-  fontSize?: number;
-  fontFamily?: string;
-  fontWeight?: number;
-  lineHeight?: number;
-  letterSpacing?: number;
-  color?: string;
-  textAlign?: string;
-
-  children?: CanvasElement[];
-}
-
-export interface PageData {
-  id: string;
-  name: string;
-  slug: string;
-  elements: CanvasElement[];
-}
-
-interface EditorState {
-  currentPage: PageData | null;
-  pages: PageData[];
-  selectedElementIds: string[];
-  scale: number;
-  offsetX: number;
-  offsetY: number;
-  gridVisible: boolean;
-  saveStatus: 'idle' | 'saving' | 'saved' | 'error';
-  publishStatus: 'idle' | 'publishing' | 'published' | 'error';
-  lastError?: string;
-
-  // Actions
-  setCurrentPage: (page: PageData) => void;
-  setPages: (pages: PageData[]) => void;
-  addPage: (page: PageData) => void;
+interface EditorStateActions {
+  // Page actions
+  setCurrentPage: (pageId: string) => void;
+  setPages: (pages: PageLayout[]) => void;
+  addPage: (name: string, slug: string) => void;
   deletePage: (pageId: string) => void;
-  updatePage: (pageId: string, updates: Partial<PageData>) => void;
+  renamePage: (pageId: string, name: string) => void;
 
+  // Element actions
   selectElement: (id: string, multi?: boolean) => void;
   deselectAll: () => void;
-  updateElement: (id: string, updates: Partial<CanvasElement>) => void;
+  addElement: (element: EditorElement) => void;
+  updateElement: (id: string, updates: Partial<EditorElement>) => void;
   deleteElement: (id: string) => void;
-  addElement: (element: CanvasElement) => void;
+  deleteSelectedElements: () => void;
+  moveElement: (id: string, x: number, y: number) => void;
 
-  setScale: (scale: number) => void;
-  setOffset: (x: number, y: number) => void;
+  // Canvas actions
+  setZoom: (level: number) => void;
+  setPan: (x: number, y: number) => void;
   toggleGrid: () => void;
 
-  setSaveStatus: (status: 'idle' | 'saving' | 'saved' | 'error', error?: string) => void;
-  setPublishStatus: (status: 'idle' | 'publishing' | 'published' | 'error', error?: string) => void;
+  // Status actions
+  setStatus: (status: EditorStateType['status'], error?: string) => void;
+
+  // History actions
+  undo: () => void;
+  redo: () => void;
+  saveToHistory: () => void;
 }
 
-export const useEditorStore = create<EditorState>((set) => ({
-  currentPage: null,
-  pages: [],
-  selectedElementIds: [],
-  scale: 1,
-  offsetX: 0,
-  offsetY: 0,
-  gridVisible: false,
-  saveStatus: 'idle',
-  publishStatus: 'idle',
+type EditorStore = EditorStateType & EditorStateActions;
 
-  setCurrentPage: (page) => set({ currentPage: page }),
-  
-  setPages: (pages) => set({ pages }),
-  
-  addPage: (page) =>
-    set((state) => ({
-      pages: [...state.pages, page],
-    })),
-  
-  deletePage: (pageId) =>
+const defaultState: EditorStateType = {
+  pages: [],
+  currentPageId: null,
+  selectedElementIds: [],
+  clipboard: null,
+  history: [],
+  historyIndex: -1,
+  zoomLevel: 1,
+  panX: 0,
+  panY: 0,
+  showGrid: false,
+  gridSize: 20,
+  status: 'idle',
+  error: null,
+};
+
+export const useEditorStore = create<EditorStore>((set, get) => ({
+  ...defaultState,
+
+  setCurrentPage: (pageId: string) => set({ currentPageId: pageId }),
+
+  setPages: (pages: PageLayout[]) => set({ pages }),
+
+  addPage: (name: string, slug: string) => {
+    set((state) => {
+      const newPage: PageLayout = {
+        id: uuidv4(),
+        name,
+        slug,
+        elements: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      return {
+        pages: [...state.pages, newPage],
+        currentPageId: newPage.id,
+      };
+    });
+  },
+
+  deletePage: (pageId: string) => {
     set((state) => ({
       pages: state.pages.filter((p) => p.id !== pageId),
-      currentPage: state.currentPage?.id === pageId ? null : state.currentPage,
-    })),
-  
-  updatePage: (pageId, updates) =>
-    set((state) => ({
-      currentPage: state.currentPage?.id === pageId 
-        ? { ...state.currentPage, ...updates }
-        : state.currentPage,
-      pages: state.pages.map((p) =>
-        p.id === pageId ? { ...p, ...updates } : p
-      ),
-    })),
+      currentPageId: state.currentPageId === pageId ? state.pages[0]?.id || null : state.currentPageId,
+    }));
+  },
 
-  selectElement: (id, multi = false) =>
+  renamePage: (pageId: string, name: string) => {
+    set((state) => ({
+      pages: state.pages.map((p) =>
+        p.id === pageId ? { ...p, name, updatedAt: Date.now() } : p
+      ),
+    }));
+  },
+
+  selectElement: (id: string, multi = false) => {
     set((state) => ({
       selectedElementIds: multi
         ? state.selectedElementIds.includes(id)
           ? state.selectedElementIds.filter((sid) => sid !== id)
           : [...state.selectedElementIds, id]
         : [id],
-    })),
+    }));
+  },
 
   deselectAll: () => set({ selectedElementIds: [] }),
 
-  updateElement: (id, updates) =>
+  addElement: (element: EditorElement) => {
     set((state) => {
-      if (!state.currentPage) return state;
-      
-      const updateRecursive = (elements: CanvasElement[]): CanvasElement[] =>
-        elements.map((el) => {
-          if (el.id === id) {
-            return { ...el, ...updates };
-          }
-          if (el.children) {
-            return {
-              ...el,
-              children: updateRecursive(el.children),
-            };
-          }
-          return el;
-        });
-
+      if (!state.currentPageId) return state;
       return {
-        currentPage: {
-          ...state.currentPage,
-          elements: updateRecursive(state.currentPage.elements),
-        },
+        pages: state.pages.map((p) =>
+          p.id === state.currentPageId
+            ? { ...p, elements: [...p.elements, element], updatedAt: Date.now() }
+            : p
+        ),
       };
-    }),
+    });
+  },
 
-  deleteElement: (id) =>
+  updateElement: (id: string, updates: Partial<EditorElement>) => {
     set((state) => {
-      if (!state.currentPage) return state;
-
-      const deleteRecursive = (elements: CanvasElement[]): CanvasElement[] =>
-        elements
-          .filter((el) => el.id !== id)
-          .map((el) => ({
-            ...el,
-            children: el.children ? deleteRecursive(el.children) : undefined,
-          }));
-
+      if (!state.currentPageId) return state;
       return {
-        currentPage: {
-          ...state.currentPage,
-          elements: deleteRecursive(state.currentPage.elements),
-        },
+        pages: state.pages.map((p) =>
+          p.id === state.currentPageId
+            ? {
+                ...p,
+                elements: p.elements.map((el) => (el.id === id ? { ...el, ...updates } : el)),
+                updatedAt: Date.now(),
+              }
+            : p
+        ),
+      };
+    });
+  },
+
+  deleteElement: (id: string) => {
+    set((state) => {
+      if (!state.currentPageId) return state;
+      return {
+        pages: state.pages.map((p) =>
+          p.id === state.currentPageId
+            ? {
+                ...p,
+                elements: p.elements.filter((el) => el.id !== id),
+                updatedAt: Date.now(),
+              }
+            : p
+        ),
         selectedElementIds: state.selectedElementIds.filter((sid) => sid !== id),
       };
-    }),
+    });
+  },
 
-  addElement: (element) =>
+  deleteSelectedElements: () => {
     set((state) => {
-      if (!state.currentPage) return state;
-      
+      if (!state.currentPageId) return state;
+      const idsToDelete = new Set(state.selectedElementIds);
       return {
-        currentPage: {
-          ...state.currentPage,
-          elements: [...state.currentPage.elements, element],
-        },
+        pages: state.pages.map((p) =>
+          p.id === state.currentPageId
+            ? {
+                ...p,
+                elements: p.elements.filter((el) => !idsToDelete.has(el.id)),
+                updatedAt: Date.now(),
+              }
+            : p
+        ),
+        selectedElementIds: [],
       };
-    }),
+    });
+  },
 
-  setScale: (scale) => set({ scale }),
-  
-  setOffset: (x, y) => set({ offsetX: x, offsetY: y }),
-  
-  toggleGrid: () => set((state) => ({ gridVisible: !state.gridVisible })),
+  moveElement: (id: string, x: number, y: number) => {
+    set((state) => {
+      if (!state.currentPageId) return state;
+      return {
+        pages: state.pages.map((p) =>
+          p.id === state.currentPageId
+            ? {
+                ...p,
+                elements: p.elements.map((el) =>
+                  el.id === id ? { ...el, x, y } : el
+                ),
+                updatedAt: Date.now(),
+              }
+            : p
+        ),
+      };
+    });
+  },
 
-  setSaveStatus: (status, error) =>
-    set({ saveStatus: status, lastError: error }),
-  
-  setPublishStatus: (status, error) =>
-    set({ publishStatus: status, lastError: error }),
+  setZoom: (level: number) => set({ zoomLevel: Math.max(0.1, Math.min(5, level)) }),
+
+  setPan: (x: number, y: number) => set({ panX: x, panY: y }),
+
+  toggleGrid: () => set((state) => ({ showGrid: !state.showGrid })),
+
+  setStatus: (status, error) => set({ status, error: error || null }),
+
+  undo: () => {
+    set((state) => {
+      if (state.historyIndex > 0) {
+        const newIndex = state.historyIndex - 1;
+        return {
+          pages: state.history[newIndex],
+          historyIndex: newIndex,
+        };
+      }
+      return state;
+    });
+  },
+
+  redo: () => {
+    set((state) => {
+      if (state.historyIndex < state.history.length - 1) {
+        const newIndex = state.historyIndex + 1;
+        return {
+          pages: state.history[newIndex],
+          historyIndex: newIndex,
+        };
+      }
+      return state;
+    });
+  },
+
+  saveToHistory: () => {
+    set((state) => {
+      const newHistory = state.history.slice(0, state.historyIndex + 1);
+      newHistory.push(state.pages);
+      return {
+        history: newHistory,
+        historyIndex: newHistory.length - 1,
+      };
+    });
+  },
 }));

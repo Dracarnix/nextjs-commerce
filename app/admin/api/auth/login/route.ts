@@ -1,4 +1,4 @@
-import { validateCredentials, createSession } from '@/lib/auth';
+import { createSession } from '@/lib/session';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
@@ -12,9 +12,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const isValid = await validateCredentials(username, password);
+    // Validate credentials against environment variables
+    const validUsername = process.env.ADMIN_USERNAME;
+    const validPassword = process.env.ADMIN_PASSWORD;
 
-    if (!isValid) {
+    if (username !== validUsername || password !== validPassword) {
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 401 }
@@ -22,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create session
-    await createSession(username);
+    await createSession();
 
     return NextResponse.json(
       { success: true, message: 'Login successful' },

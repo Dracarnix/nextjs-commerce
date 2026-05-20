@@ -1,9 +1,9 @@
-import { clearSession } from '@/lib/auth';
+import { deleteSession } from '@/lib/session';
 import { NextResponse } from 'next/server';
 
 export async function POST() {
   try {
-    await clearSession();
+    await deleteSession();
     return NextResponse.json(
       { success: true, message: 'Logged out' },
       { status: 200 }
