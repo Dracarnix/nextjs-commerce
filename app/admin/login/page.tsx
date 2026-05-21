@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,20 +22,18 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/admin/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+      const result = await signIn('credentials', {
+        username,
+        password,
+        redirect: false,
       });
 
-      if (!response.ok) {
+      if (result?.error) {
         setError('Invalid username or password');
         setIsLoading(false);
-        return;
+      } else if (result?.ok) {
+        router.push('/admin/editor');
       }
-
-      // Login successful, redirect to editor
-      router.push('/admin/editor');
     } catch (err) {
       setError('An error occurred. Please try again.');
       setIsLoading(false);

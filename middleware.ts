@@ -1,25 +1,26 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { withAuth } from 'next-auth/middleware';
+import { NextRequest } from 'next/server';
 
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-
-  // Allow login page to be accessed without authentication
-  if (pathname === '/admin/login') {
-    return NextResponse.next();
+export default withAuth(
+  function middleware(req: NextRequest) {
+    return undefined;
+  },
+  {
+    callbacks: {
+      authorized: ({ token, req }) => {
+        // Protect /admin/editor and all routes under it
+        if (req.nextUrl.pathname.startsWith('/admin/editor')) {
+          return !!token;
+        }
+        // Allow /admin/login for everyone
+        return true;
+      },
+    },
+    pages: {
+      signIn: '/admin/login',
+    },
   }
-
-  // Check for session cookie on protected admin routes
-  if (pathname.startsWith('/admin/')) {
-    const sessionToken = request.cookies.get('admin_session')?.value;
-
-    if (!sessionToken) {
-      // Redirect to login if not authenticated
-      return NextResponse.redirect(new URL('/admin/login', request.url));
-    }
-  }
-
-  return NextResponse.next();
-}
+);
 
 export const config = {
   matcher: ['/admin/:path*'],
