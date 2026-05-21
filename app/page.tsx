@@ -17,7 +17,7 @@ export default function HomePage() {
           {/* Center Nav */}
           <nav className="flex items-center gap-6">
             <a 
-              href="https://www.instagram.com/thevyznmusic/" 
+              href="https://www.instagram.com/thevyznn/" 
               target="_blank" 
               rel="noopener noreferrer" 
               className="text-sm tracking-wider hover:opacity-70 transition-opacity underline underline-offset-4"
