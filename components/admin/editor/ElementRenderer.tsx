@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { Text, Rect, Image, Group } from 'react-konva';
 import type { EditorElement } from '@/lib/editor/types';

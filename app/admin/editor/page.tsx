@@ -7,7 +7,7 @@ import RightPanel from '@/components/admin/editor/RightPanel';
 import Canvas from '@/components/admin/editor/Canvas';
 import KeyboardShortcutsHandler from '@/components/admin/editor/KeyboardShortcutsHandler';
 import KeyboardShortcutsDialog from '@/components/admin/editor/KeyboardShortcutsDialog';
-import { Toaster } from 'sonner';
+import ToasterProvider from '@/components/admin/editor/ToasterProvider';
 
 export const metadata = {
   title: 'Editor | THE VYZN Admin',
@@ -23,7 +23,7 @@ export default async function EditorPage() {
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
-      <Toaster />
+      <ToasterProvider />
       <KeyboardShortcutsHandler />
       
       {/* Left Panel - Layers & Elements */}
