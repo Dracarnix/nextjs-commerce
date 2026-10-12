@@ -92,7 +92,7 @@ export default function HomePage() {
         {/* Image */}
         <div className="relative w-full h-[80vh] md:h-screen">
           <Image
-            src="/images/artist-performer.jpg"
+            src="/images/artist-beach.jpg"
             alt="THE VYZN"
             fill
             className="object-cover object-center"
